@@ -196,7 +196,7 @@ def simulation_b(control_prob, treatment_prob, control_size = 1000, treatment_si
     Greater external validity with this method in marketing program optimization contexts.
     """
     sample_size = treatment_size + control_size
-    sample_prob = calcs.get_sample_prob(control_prob, treatment_prob, control_size, treatment_size)
+    sample_prob = get_sample_prob(control_prob, treatment_prob, control_size, treatment_size)
 
     observed_difference = treatment_prob - control_prob
     print('Observed Difference: {:.4f}'.format(observed_difference))
