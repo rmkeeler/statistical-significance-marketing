@@ -37,7 +37,7 @@ def sig_test_a(control_prob, treatment_prob, control_size = 1000, treatment_size
     sigma = np.sqrt(variance_control/control_size)
 
     z = (treatment_prob - control_prob) / sigma
-    p = 2 * (1 - stats.norm.cdf(z))
+    p = 2 * (1 - stats.norm.cdf(z)) if treatment_prob >= control_prob else 2 * (stats.norm.cdf(z))
 
     print('Z Score: {}\nP Value: {}'.format(z,p))
 
@@ -94,7 +94,7 @@ def sig_test_b(control_prob, treatment_prob, control_size = 1000, treatment_size
     sample_prob = get_sample_prob(control_prob, treatment_prob, control_size, treatment_size)
 
     variance_control = 1 * sample_prob * (1 - sample_prob)
-    variance_treatment = 1 * sample_prob * (1 - sample_prob) # same as variance_control, because we null assumes probs are equivalent
+    variance_treatment = 1 * sample_prob * (1 - sample_prob) # same as variance_control, because null assumes probs are equivalent
     sigma = np.sqrt((variance_control/control_size) + (variance_treatment/treatment_size))
 
     z = (treatment_prob - control_prob) / sigma
