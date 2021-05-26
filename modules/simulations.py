@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+from modules import analytics as calcs
 
-def sim_sig_test_a(control_prob, treatment_prob, control_size = 1000, treatment_size = 1000, runs = 500000, plot = False):
+def sig_test_a(control_prob, treatment_prob, control_size = 1000, treatment_size = 1000, runs = 500000, plot = False):
     """
     Get a p value from split test results. Two-tailed assessment of treatment's
     difference from control's value. Uses control probability as the basis of the
@@ -50,9 +51,12 @@ def sim_sig_test_a(control_prob, treatment_prob, control_size = 1000, treatment_
 
         plt.show();
 
-    return p
+        return fig, ax, p
 
-def sim_sig_test_b(control_prob, treatment_prob, control_size = 1000, treatment_size = 1000, runs = 500000, plot = False):
+    else:
+        return p
+
+def sig_test_b(control_prob, treatment_prob, control_size = 1000, treatment_size = 1000, runs = 500000, plot = False):
     """
     Get a p value from split test results. One-tailed assessment of difference
     treatment - control. Uses difference == 0 as the basis for evaluation.
@@ -65,7 +69,7 @@ def sim_sig_test_b(control_prob, treatment_prob, control_size = 1000, treatment_
     Greater external validity with this method in marketing program optimization contexts.
     """
     sample_size = treatment_size + control_size
-    sample_prob = get_sample_prob(control_prob, treatment_prob, control_size, treatment_size)
+    sample_prob = calcs.get_sample_prob(control_prob, treatment_prob, control_size, treatment_size)
 
     observed_difference = treatment_prob - control_prob
     print('Observed Difference: {:.4f}'.format(observed_difference))
@@ -100,4 +104,7 @@ def sim_sig_test_b(control_prob, treatment_prob, control_size = 1000, treatment_
 
         plt.show();
 
-    return p
+        return fig, ax, p
+
+    else:
+        return p
