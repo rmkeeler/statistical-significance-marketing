@@ -21,6 +21,8 @@ def find_power(p_control, p_treatment, n_control = 1000, n_treatment = 1000, alp
 
     Alt: There is a positive difference between the two probabilities observed.
     p_treatment - p_control > 0
+
+    NOTE: If plot is set to True, returns power, fig and ax
     """
     # Invert alpha when p_treatment - p_control < 0
     # This allows p_crit calculation to place the critical value in the low tail of the null distribution
@@ -85,11 +87,16 @@ def find_power(p_control, p_treatment, n_control = 1000, n_treatment = 1000, alp
         else:
             ax.fill_between(x, y_alt, 0, where = (x >= p_crit), color = color_alt, alpha = 0.5)
             ax.fill_between(x, y_null, 0, where = (x <= p_crit), color = color_null, alpha = 0.5)
+
+        ax.set_xlabel('Sample Mean Differences (Probabilities)')
+        ax.set_ylabel('Probability Density')
         ax.legend(['Null','Alt'])
 
         plt.show();
 
-    return power
+        return power, fig, ax
+    else:
+        return power
 
 
 def find_sample_size(p_control, p_treatment, alpha = 0.05, power = 0.8, report = False):
