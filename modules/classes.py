@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class BinomialExperiment():
     """
@@ -135,10 +136,8 @@ class BinomialExperiment():
         Takes results of a completed experiment and reveals the statistical power of the significance conclusion.
         """
         if self.p_treatment - self.p_control < 0:
-            print('Alt Hypothesis: Treatment - Control < 0\n')
             thresh = 1 - self.alpha
         else:
-            print('Alt Hypothesis: Treatment - Control > 0\n')
             thresh = self.alpha
 
         sterror_null = np.sqrt((self.var_control / self.n_control) + (self.var_control / self.n_control))
@@ -172,7 +171,9 @@ class BinomialExperiment():
         difference = treatment_sample - control_sample
         observed_difference = self.p_treatment - self.p_control
 
-        fig, ax = plt.subplots(1,1,figsize = (8,6))
+        fig = plt.figure(figsize = (8,6))
+        ax = fig.add_subplot(1,1,1)
+
         mu, sigma = stats.norm.fit(difference)
         crit_density = stats.norm.pdf(observed_difference, mu, sigma)
 
@@ -201,10 +202,8 @@ class BinomialExperiment():
         Need to call .simulate_power() before this to populate power, sim_null and sim_alt attributes.
         """
         if self.p_treatment - self.p_control < 0:
-            print('Alt Hypothesis: Treatment - Control < 0\n')
             thresh = 1 - self.alpha
         else:
-            print('Alt Hypothesis: Treatment - Control > 0\n')
             thresh = self.alpha
 
         p_crit = self.sim_null.ppf(1 - thresh)
@@ -224,7 +223,8 @@ class BinomialExperiment():
         color_null = 'blue'
         color_alt = 'orange'
 
-        fig, ax = plt.subplots(1,1,figsize = (8,6))
+        fig = plt.figure(figsize = (8,6))
+        ax = fig.add_subplot(1,1,1)
 
         ax.plot(x, y_null, color = color_null)
         ax.plot(x, y_alt, color = color_alt)
@@ -244,6 +244,28 @@ class BinomialExperiment():
             plt.show();
 
         return fig, ax
+
+    def evaluate(self, plot = False, show = False):
+        """
+        Calls other methods in this class in order to speed up the experiment evaluation
+        process and make this class more intuitive to use.
+
+        User can treat this class as a container for parameters of an experiment that has
+        concluded. Calling evaluate on it will generate P, Power and some Plots if plot == True.
+
+        Will call plt.show(); on each plot, if show == True.
+        """
+        self.sample_p = self.get_p_sample()
+        self.p_value = self.simulate_significance()
+        self.power = self.simulate_power()
+
+        print(self)
+
+        if plot:
+            fig1, ax1 = self.plot_p(show = show)
+            fig2, ax2 = self.plot_power(show = show)
+            
+            return [fig1, ax1], [fig2, ax2]
 
     def __repr__(self):
         """
