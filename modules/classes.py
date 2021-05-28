@@ -91,7 +91,7 @@ class BinomialExperiment():
         self.n_control = sample_size
         self.n_treatment = sample_size
 
-        return n
+        return sample_size
 
     def analyze_significance(self):
         """
@@ -264,8 +264,29 @@ class BinomialExperiment():
         if plot:
             fig1, ax1 = self.plot_p(show = show)
             fig2, ax2 = self.plot_power(show = show)
-            
+
             return [fig1, ax1], [fig2, ax2]
+
+    def plan(self):
+        """
+        Call other methods in this class in order to speed up the experiment planning
+        flow and make this class more intuitive to use.
+
+        When planning an experiment, user will leave n_control and n_treatment blank.
+        This is because the objective there is figuring out how many observations to generate
+        in order to detect a minimum practical effect size at a reasonable degree of power.
+
+        Before calling this method, user has populated p_control, p_treatment, power and alpha.
+        Power is desired power level. p_control is status quo rate. p_treatment is minimum outcome
+        rate required to be meaningful to the business. Alpha is desired significance level
+        (almost always, 0.05 is desired).
+        """
+        self.n_control = self.estimate_sample()
+        self.n_treatment = self.n_control
+        self.sample_p = self.get_p_sample()
+        self.p_value = self.simulate_significance()
+
+        print(self)
 
     def __repr__(self):
         """
