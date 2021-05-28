@@ -21,7 +21,7 @@ class BinomialExperiment():
     Also, this class is designed to be used as the backend of a web application
     that helps marketers plan and understand optimization experiments.
     """
-    def __init__(self, p_control, p_treatment, n_control = None, n_treatment = None, power = None, alpha = 0.05):
+    def __init__(self, p_control = None, p_treatment = None, n_control = None, n_treatment = None, power = None, alpha = 0.05):
         """
         Only two required args are p_control and p_treatment. It is assumed that the user is either evaluating a completed
         experiment or has already determined the practical difference necessary to make an experiment's results worthwhile.
@@ -36,6 +36,9 @@ class BinomialExperiment():
 
         self.var_control = 1 * p_control * (1 - p_control)
         self.var_treatment = 1 * p_treatment * (1 - p_treatment)
+
+        self.sim_null = None
+        self.sim_alt = None
 
         if power == 1:
             print('Sample size approaches infinity as power approaches 1, so 1 is an invalid power vlaue. Changing power to 0.99.')
@@ -140,9 +143,13 @@ class BinomialExperiment():
 
         sterror_null = np.sqrt((self.var_control / self.n_control) + (self.var_control / self.n_control))
         sterror_alt =  np.sqrt((self.var_treatment / self.n_treatment) + (self.var_control / self.n_control))
+        self.sterror_null = sterror_null
+        self.sterror_alt = sterror_alt
 
         dist_null = stats.norm(loc = 0, scale = sterror_null)
         dist_alt = stats.norm(loc = self.p_treatment - self.p_control, scale = sterror_alt)
+        self.sim_null = dist_null
+        self.sim_alt = dist_alt
 
         p_crit = dist_null.ppf(1 - thresh)
         beta = dist_alt.cdf(p_crit)
@@ -151,6 +158,92 @@ class BinomialExperiment():
         self.power = power
 
         return power
+
+    def plot_p(self, show = False):
+        """
+        Plot the null distribution, treatment probability and then shade the p value in order to visualize the results
+        of a significance test.
+        """
+        rng = np.random.default_rng()
+
+        control_sample = rng.binomial(n = self.n_control, p = self.p_sample, size = 1000000) / self.n_control
+        treatment_sample = rng.binomial(n = self.n_treatment, p = self.p_sample, size = 1000000) / self.n_treatment
+
+        difference = treatment_sample - control_sample
+        observed_difference = self.p_treatment - self.p_control
+
+        fig, ax = plt.subplots(1,1,figsize = (8,6))
+        mu, sigma = stats.norm.fit(difference)
+        crit_density = stats.norm.pdf(observed_difference, mu, sigma)
+
+        x = np.linspace(min(difference), max(difference), self.n_control + self.n_treatment)
+        y = stats.norm.pdf(x, mu, sigma)
+
+        ax.plot(x, y, 'blue')
+        ax.vlines(x = observed_difference, ymin = 0, ymax = crit_density, linestyle = 'dashed', color = 'black')
+        ax.fill_between(x, y, 0, where = (x >= observed_difference), color = 'green', alpha = 0.5)
+
+        ax.set_xlabel('Difference in Probabilities')
+        ax.set_ylabel('Density')
+
+        if show:
+            plt.show();
+
+        return fig, ax
+
+    def plot_power(self, show = False):
+        """
+        Produce a plot demonstrating the statistical power of the binomial split test's results.
+        Plots a simulated null distribution, a simulated alt distribution, the critical value of the null distribution.
+
+        Null p and alt beta are shaded to convey power in shorthand.
+
+        Need to call .simulate_power() before this to populate power, sim_null and sim_alt attributes.
+        """
+        if self.p_treatment - self.p_control < 0:
+            print('Alt Hypothesis: Treatment - Control < 0\n')
+            thresh = 1 - self.alpha
+        else:
+            print('Alt Hypothesis: Treatment - Control > 0\n')
+            thresh = self.alpha
+
+        p_crit = self.sim_null.ppf(1 - thresh)
+        beta = self.sim_alt.cdf(p_crit)
+
+        sample_null = self.sim_null.rvs(size = self.n_control)
+        sample_alt = self.sim_alt.rvs(size = self.n_treatment)
+
+        lowest_x = min(min(sample_null), min(sample_alt))
+        highest_x = max(max(sample_null), max(sample_alt))
+
+        x = np.linspace(lowest_x, highest_x, self.n_control + self.n_treatment)
+
+        y_null = self.sim_null.pdf(x)
+        y_alt = self.sim_alt.pdf(x)
+
+        color_null = 'blue'
+        color_alt = 'orange'
+
+        fig, ax = plt.subplots(1,1,figsize = (8,6))
+
+        ax.plot(x, y_null, color = color_null)
+        ax.plot(x, y_alt, color = color_alt)
+        ax.vlines(x = p_crit, ymin = 0, ymax = max([self.sim_null.pdf(p_crit), self.sim_alt.pdf(p_crit)]), linestyle = 'dashed', color = 'black')
+        if self.p_treatment >= self.p_control:
+            ax.fill_between(x, y_alt, 0, where = (x <= p_crit), color = color_alt, alpha = 0.5)
+            ax.fill_between(x, y_null, 0, where = (x >= p_crit), color = color_null, alpha = 0.5)
+        else:
+            ax.fill_between(x, y_alt, 0, where = (x >= p_crit), color = color_alt, alpha = 0.5)
+            ax.fill_between(x, y_null, 0, where = (x <= p_crit), color = color_null, alpha = 0.5)
+
+        ax.set_xlabel('Sample Mean Differences (Probabilities)')
+        ax.set_ylabel('Probability Density')
+        ax.legend(['Null','Alt'])
+
+        if show:
+            plt.show();
+
+        return fig, ax
 
     def __repr__(self):
         """
