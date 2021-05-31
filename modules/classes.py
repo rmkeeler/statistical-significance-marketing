@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import pandas as pd
 
 class BinomialExperiment():
@@ -22,7 +23,7 @@ class BinomialExperiment():
     Also, this class is designed to be used as the backend of a web application
     that helps marketers plan and understand optimization experiments.
     """
-    def __init__(self, p_control = None, p_treatment = None, n_control = None, n_treatment = None, power = None, alpha = 0.05):
+    def __init__(self, p_control = 0, p_treatment = 0, n_control = 0, n_treatment = 0, power = None, alpha = 0.05):
         """
         Only two required args are p_control and p_treatment. It is assumed that the user is either evaluating a completed
         experiment or has already determined the practical difference necessary to make an experiment's results worthwhile.
@@ -38,8 +39,22 @@ class BinomialExperiment():
         self.var_control = 1 * p_control * (1 - p_control)
         self.var_treatment = 1 * p_treatment * (1 - p_treatment)
 
-        self.sim_null = None
-        self.sim_alt = None
+        self.norm_null = None
+        self.norm_alt = None
+
+        self.binom_null = None
+        self.binom_alt = None
+
+        if n_control > 0 and n_treatment > 0 and p_control > 0 and p_treatment > 0:
+            control = self.p_control * self.n_control
+            treatment = self.p_treatment * self.n_treatment
+            sample = self.n_control + self.n_treatment
+
+            p_sample = (control + treatment) / sample
+
+            self.p_sample = p_sample
+        else:
+            self.p_sample = None
 
         if power == 1:
             print('Sample size approaches infinity as power approaches 1, so 1 is an invalid power vlaue. Changing power to 0.99.')
@@ -67,7 +82,7 @@ class BinomialExperiment():
 
         return p_sample
 
-    def estimate_sample(self):
+    def estimate_sample(self, power = 0):
         """
         Take desired effect size, alpha and desired power level. Return a minimum sample size (one group)
         that would be necessary to acheive the desired experiment results.
@@ -75,8 +90,15 @@ class BinomialExperiment():
         Allows the user to specify power and alpha here, if they didn't specify them when they instantiated the class.
         Otherwise, it takes the values provided to the class on instantiation.
         """
+        if power > 0:
+            power = power
+        elif power == 0:
+            power = self.power
+        else:
+            raise Exception('Power provided is negative. That is nonsense. Please provide a positive power.')
+
         z_null = stats.norm.ppf(1 - self.alpha)
-        z_alt = stats.norm.ppf(1 - self.power)
+        z_alt = stats.norm.ppf(1 - power)
 
         stdev_null = np.sqrt(self.var_control + self.var_control)
         stdev_alt = np.sqrt(self.var_control + self.var_treatment)
@@ -92,6 +114,59 @@ class BinomialExperiment():
         self.n_treatment = sample_size
 
         return sample_size
+
+    def binom_distribution(self):
+        """
+        Simulates two binomial distributions, one for control group and other
+        for treatment group. Stored as attributes of the object created by this class.
+
+        Allows a user to specify the probability of each distribution. Assuming separate
+        distributions by default to keep things intuitive.
+
+        But, when testing experiment results against a typical marketing hypothesis
+        (null: treatment - control <= 0), both p_control and p_treatment should be
+        set to the overall probability of the combined sample (call get_p_sample()
+        method of this class, first). That way, a single null distribution can be
+        generated to represent the difference between control and treatment being 0.
+
+        (See .simulate_significance() for an example application like the above).
+        """
+        null_control = stats.binom.rvs(p = self.p_sample, n = self.n_control, size = 1000000) / self.n_control
+        null_treatment = stats.binom.rvs(p = self.p_sample, n = self.n_treatment, size = 1000000) / self.n_treatment
+
+        alt_control = stats.binom.rvs(p = self.p_control, n = self.n_control, size = 1000000) / self.n_control
+        alt_treatment = stats.binom.rvs(p = self.p_treatment, n = self.n_treatment, size = 1000000) / self.n_treatment
+
+        self.binom_null = null_treatment - null_control
+        self.binom_alt = alt_treatment - alt_control
+
+    def norm_distribution(self):
+        """
+        Approximate null and alt binomial distributions by simulating normal
+        distributions. Normal distributions are created like this:
+
+        Null: Treatment P = Control P, so combined distribution is control - control.
+        Mean is 0, because null hypothesis is that treatment - control <= 0.
+
+        Alt: Treatment P > Control P, so combined distribution is treatment - control.
+        Mean is p_treatment - p_control, because alt hypothesis is treatment - control > 0.
+
+        This function is useful when simulating statistical power post-hoc.
+        """
+        # Null hypothesis is no difference between treatment and control distributions
+        # So, null distribution is control subtracted from itself (treatment = control)
+        sterror_null = np.sqrt((self.var_control / self.n_control) + (self.var_control / self.n_control))
+        # Alt hypothesis is treatment - control > 0
+        # So, alt distribution is treatment - control, variance of which is var(treatment) + var(control).
+        sterror_alt =  np.sqrt((self.var_treatment / self.n_treatment) + (self.var_control / self.n_control))
+
+        self.sterror_null = sterror_null
+        self.sterror_alt = sterror_alt
+
+        dist_null = stats.norm(loc = 0, scale = sterror_null)
+        dist_alt = stats.norm(loc = self.p_treatment - self.p_control, scale = sterror_alt)
+        self.norm_null = dist_null
+        self.norm_alt = dist_alt
 
     def analyze_significance(self):
         """
@@ -120,11 +195,12 @@ class BinomialExperiment():
         """
         observed_difference = self.p_treatment - self.p_control
 
-        rng = np.random.default_rng()
-        sample_control = rng.binomial(n = self.n_control, p = self.p_sample, size = 1000000) / self.n_control
-        sample_treatment = rng.binomial(n = self.n_treatment, p = self.p_sample, size = 1000000) / self.n_treatment
-
-        differences = sample_treatment - sample_control
+        try: # check to see if there's an array in self.binom_null
+            len(self.binom_null)
+            differences = self.binom_null
+        except:
+            self.binom_distribution()
+            differences = self.binom_null
 
         p = (differences >= observed_difference).mean()
         self.p_value = p
@@ -140,18 +216,14 @@ class BinomialExperiment():
         else:
             thresh = self.alpha
 
-        sterror_null = np.sqrt((self.var_control / self.n_control) + (self.var_control / self.n_control))
-        sterror_alt =  np.sqrt((self.var_treatment / self.n_treatment) + (self.var_control / self.n_control))
-        self.sterror_null = sterror_null
-        self.sterror_alt = sterror_alt
-
-        dist_null = stats.norm(loc = 0, scale = sterror_null)
-        dist_alt = stats.norm(loc = self.p_treatment - self.p_control, scale = sterror_alt)
-        self.sim_null = dist_null
-        self.sim_alt = dist_alt
-
-        p_crit = dist_null.ppf(1 - thresh)
-        beta = dist_alt.cdf(p_crit)
+        try:
+            p_crit = self.norm_null.ppf(1 - thresh)
+            beta = self.norm_alt.cdf(p_crit)
+        except:
+            print('Could not eval p crit nor beta! Building normal distribution')
+            self.norm_distribution()
+            p_crit = self.norm_null.ppf(1 - thresh)
+            beta = self.norm_alt.cdf(p_crit)
 
         power = (1 - beta) if self.p_treatment > self.p_control else beta
         self.power = power
@@ -163,12 +235,12 @@ class BinomialExperiment():
         Plot the null distribution, treatment probability and then shade the p value in order to visualize the results
         of a significance test.
         """
-        rng = np.random.default_rng()
+        try:
+            difference = self.binom_null
+        except:
+            self.binom_distribution()
+            difference = self.binom_null
 
-        control_sample = rng.binomial(n = self.n_control, p = self.p_sample, size = 1000000) / self.n_control
-        treatment_sample = rng.binomial(n = self.n_treatment, p = self.p_sample, size = 1000000) / self.n_treatment
-
-        difference = treatment_sample - control_sample
         observed_difference = self.p_treatment - self.p_control
 
         fig = plt.figure(figsize = (8,6))
@@ -182,7 +254,7 @@ class BinomialExperiment():
 
         ax.plot(x, y, 'blue')
         ax.vlines(x = observed_difference, ymin = 0, ymax = crit_density, linestyle = 'dashed', color = 'black')
-        ax.fill_between(x, y, 0, where = (x >= observed_difference), color = 'green', alpha = 0.5)
+        ax.fill_between(x, y, 0, where = (x >= observed_difference), color = 'blue', alpha = 0.5)
 
         ax.set_xlabel('Difference in Probabilities')
         ax.set_ylabel('Density')
@@ -194,31 +266,40 @@ class BinomialExperiment():
 
     def plot_power(self, show = False):
         """
-        Produce a plot demonstrating the statistical power of the binomial split test's results.
-        Plots a simulated null distribution, a simulated alt distribution, the critical value of the null distribution.
+        Produce a plot demonstrating the statistical power of the binomial split
+        test's results.
+
+        Plots a simulated null distribution, a simulated alt distribution, the
+        critical value of the null distribution.
 
         Null p and alt beta are shaded to convey power in shorthand.
 
-        Need to call .simulate_power() before this to populate power, sim_null and sim_alt attributes.
+        Needs a value in self.power and self.norm_null to work. Call .simulate_power() before this
+        to populate power, sim_null and sim_alt attributes.
         """
         if self.p_treatment - self.p_control < 0:
             thresh = 1 - self.alpha
         else:
             thresh = self.alpha
 
-        p_crit = self.sim_null.ppf(1 - thresh)
-        beta = self.sim_alt.cdf(p_crit)
+        try:
+            p_crit = self.norm_null.ppf(1 - thresh)
+            beta = self.norm_alt.cdf(p_crit)
+        except:
+            self.norm_distribution()
+            p_crit = self.norm_null.ppf(1 - thresh)
+            beta = self.norm_alt.cdf(p_crit)
 
-        sample_null = self.sim_null.rvs(size = self.n_control)
-        sample_alt = self.sim_alt.rvs(size = self.n_treatment)
+        sample_null = self.norm_null.rvs(size = self.n_control)
+        sample_alt = self.norm_alt.rvs(size = self.n_treatment)
 
         lowest_x = min(min(sample_null), min(sample_alt))
         highest_x = max(max(sample_null), max(sample_alt))
 
         x = np.linspace(lowest_x, highest_x, self.n_control + self.n_treatment)
 
-        y_null = self.sim_null.pdf(x)
-        y_alt = self.sim_alt.pdf(x)
+        y_null = self.norm_null.pdf(x)
+        y_alt = self.norm_alt.pdf(x)
 
         color_null = 'blue'
         color_alt = 'orange'
@@ -228,7 +309,7 @@ class BinomialExperiment():
 
         ax.plot(x, y_null, color = color_null)
         ax.plot(x, y_alt, color = color_alt)
-        ax.vlines(x = p_crit, ymin = 0, ymax = max([self.sim_null.pdf(p_crit), self.sim_alt.pdf(p_crit)]), linestyle = 'dashed', color = 'black')
+        ax.vlines(x = p_crit, ymin = 0, ymax = max([self.norm_null.pdf(p_crit), self.norm_alt.pdf(p_crit)]), linestyle = 'dashed', color = 'black')
         if self.p_treatment >= self.p_control:
             ax.fill_between(x, y_alt, 0, where = (x <= p_crit), color = color_alt, alpha = 0.5)
             ax.fill_between(x, y_null, 0, where = (x >= p_crit), color = color_null, alpha = 0.5)
@@ -245,6 +326,47 @@ class BinomialExperiment():
 
         return fig, ax
 
+    def plot_power_curve(self, show = False):
+        """
+        Creates a line plot that shows how power changes as sample size changes.
+        Intended to be used during experiment planning in order to find out
+        if feasibility will be an issue.
+
+        For instance, if the standard 0.80 power level requires a sample size
+        that will take too long to generate, how much smaller can we go before
+        power becomes a prohibitive issue?
+
+        Requires effect size (p_treatment and p_control) and alpha to work. Then,
+        it loops through many different power values and plots resulting sample
+        size for each.
+        """
+        power_levels = np.linspace(0.01,0.99,176)
+        sample_sizes = []
+
+        for p in power_levels:
+            size = self.estimate_sample(power = p)
+            sample_sizes.append(size)
+
+        fig = plt.figure(figsize = (8,6))
+        ax = fig.add_subplot(1,1,1)
+
+        x = power_levels
+        y = sample_sizes
+
+        ax.plot(x, y, color = 'blue')
+        ax.vlines(x = self.power, ymin = 0, ymax = max(sample_sizes), linestyle = 'dashed', color = 'black')
+        ax.set_xlabel('Statistical Power')
+        ax.set_ylabel('Recommended Size per Sample at Alpha = 0.05')
+
+        ticks = ax.get_yticks().tolist()
+        ax.yaxis.set_major_locator(mticker.FixedLocator(ticks))
+        ax.set_yticklabels(['{:,}'.format(int(x)) for x in ticks])
+
+        if show:
+            plt.show();
+
+        return fig, ax
+
     def evaluate(self, plot = False, show = False):
         """
         Calls other methods in this class in order to speed up the experiment evaluation
@@ -255,9 +377,9 @@ class BinomialExperiment():
 
         Will call plt.show(); on each plot, if show == True.
         """
-        self.sample_p = self.get_p_sample()
-        self.p_value = self.simulate_significance()
-        self.power = self.simulate_power()
+        self.get_p_sample()
+        self.simulate_significance()
+        self.simulate_power()
 
         print(self)
 
@@ -300,7 +422,7 @@ class BinomialExperiment():
                ['Control Sample Size', '{:,}'.format(self.n_control)],
                ['Treatment Sample Size', '{:,}'.format(self.n_treatment)],
                ['',''],
-               ['Statistical Power', '{:.3f}'.format(self.power)],
+               ['Statistical Power', '{:.3f}'.format(self.power) if self.power else 'None'],
                ['Significance Threshold', '{:.3f}'.format(self.alpha)],
                ['P Value', '{:.3f}'.format(self.p_value) if self.p_value else 'None']]
 
