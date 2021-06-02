@@ -3,7 +3,6 @@ import scipy.stats as stats
 import pandas as pd
 
 import plotly.graph_objects as go
-import plotly.io as pio
 
 class BinomialExperiment():
     """
@@ -368,7 +367,7 @@ class BinomialExperiment():
         line_curve = dict(color = 'blue', width = 2)
 
         x_axis = dict(title = 'Statistical Power', showline = True, linecolor = 'black', zeroline = False, showgrid = False)
-        y_axis = dict(title = 'Recommended Size per Sample at Alpha 0.05', showline = True, linecolor = 'black', zeroline = False, showgrid = False)
+        y_axis = dict(title = 'Recommended Size per Sample at Alpha 0.05', showline = True, linecolor = 'black', zeroline = False, showgrid = False, tickformat = ',d')
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x = x, y = y, mode = 'lines', showlegend = False, line = line_curve))
