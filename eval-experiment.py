@@ -7,10 +7,18 @@ from modules.classes import BinomialExperiment
 parser = argparse.ArgumentParser(description = 'Evaluate an experiment after it concludes by providing p_treatment, p_control and sample sizes.')
 
 # Add command line arguments to interpret
-parser.add_argument('p_control', type = float, help = '')
-parser.add_argument('p_treatment', type = float, help = '')
-parser.add_argument('n_control', type = int, help = '')
-parser.add_argument('n_treatment', type = int, help = '')
+parser.add_argument('p_control',
+                    type = float,
+                    help = 'The expected outcome rate of your control group (status quo outcome rate)')
+parser.add_argument('p_treatment',
+                    type = float,
+                    help = 'The expected outcome rate of your treatment group (target outcome rate of the change you want to test)')
+parser.add_argument('n_control',
+                    type = int,
+                    help = 'Count of observations in your control group.')
+parser.add_argument('n_treatment',
+                    type = int,
+                    help = 'Count of observations in your treatment group.')
 
 def validate_cmd(args):
     """

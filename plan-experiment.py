@@ -7,10 +7,18 @@ from modules.classes import BinomialExperiment
 parser = argparse.ArgumentParser(description = 'Plan an experiment by providing p_treatment, p_control, desired power level and desired significance threshold')
 
 # Add command line arguments to interpret
-parser.add_argument('p_control', type = float, help = 'The expected outcome rate of your control group (status quo outcome rate)')
-parser.add_argument('p_treatment', type = float, help = 'The expected outcome rate of your treatment group (target outcome rate of the change you want to test)')
-parser.add_argument('--power', type = float, help = 'Optional (default (0.80). Your desired statistical power level.')
-parser.add_argument('--alpha', type = float, help = 'Optional (default 0.05). Your desired statistical significance threshold.')
+parser.add_argument('p_control',
+                    type = float,
+                    help = 'The expected outcome rate of your control group (status quo outcome rate)')
+parser.add_argument('p_treatment',
+                    type = float,
+                    help = 'The expected outcome rate of your treatment group (target outcome rate of the change you want to test)')
+parser.add_argument('--power',
+                    type = float,
+                    help = 'Optional (default (0.80). Your desired statistical power level.')
+parser.add_argument('--alpha',
+                    type = float,
+                    help = 'Optional (default 0.05). Your desired statistical significance threshold.')
 
 def validate_cmd(args):
     """
