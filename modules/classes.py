@@ -501,6 +501,6 @@ class BinomialExperiment():
                ['',''],
                ['Statistical Power', '{:.3f}'.format(self.power) if self.power else 'None'],
                ['Significance Threshold', '{:.3f}'.format(self.alpha)],
-               ['P Value', '{:.3f}'.format(self.p_value) if self.p_value else 'None']]
+               ['P Value', '{:.3f}'.format(self.p_value) if self.p_value != None else 'None']]
 
         return header + str(pd.DataFrame(data = [x[1] for x in data], index = [x[0] for x in data], columns = ['']))
