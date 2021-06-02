@@ -1,5 +1,4 @@
 import argparse
-import matplotlib.pyplot as plt
 import numpy as np
 from modules.classes import BinomialExperiment
 
@@ -14,6 +13,9 @@ parser.add_argument('--power', type = float, help = 'Optional (default (0.80). Y
 parser.add_argument('--alpha', type = float, help = 'Optional (default 0.05). Your desired statistical significance threshold.')
 
 def validate_cmd(args):
+    """
+    Check each argument to make sure values are appropriate for this analysis.
+    """
     if args.alpha and args.alpha > 0 and args.alpha < 1:
         alpha = args.alpha
     elif args.alpha == None:
@@ -40,25 +42,17 @@ def validate_cmd(args):
 
     return p_control, p_treatment, power, alpha
 
-def display_figures(figs, nrows = 1, ncols = 1):
-    """
-    Takes a list of pyplot figures and returns them in the same larger image so that
-    all can be viewed together.
-    """
-    fig, axes = plt.subplots(ncols = ncols, nrows = nrows)
-    for i in range(len(figs)):
-        axes.ravel()[i].imshow(figs[i], cmap = plt.gray())
-        axes.ravel()[i].set_title('Plot {}'.format(i+1))
-    plt.tight_layout()
-
 def main():
     """
-    Functioning controlling the app's flow. Execute this when this file is run, directly.
+    Function controlling the app's flow. Execute this when this file is run, directly.
     """
     args = parser.parse_args()
     p_control, p_treatment, power, alpha = validate_cmd(args)
-    experiment = BinomialExperiment(p_control = p_control, p_treatment = p_treatment, power = power, alpha = alpha)
+    experiment = BinomialExperiment(p_control = p_control,
+                                    p_treatment = p_treatment,
+                                    power = power,
+                                    alpha = alpha)
     fig_p, fig_power, fig_curve = experiment.plan(plot = True, show = True)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

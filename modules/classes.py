@@ -226,7 +226,6 @@ class BinomialExperiment():
             p_crit = self.norm_null.ppf(1 - thresh)
             beta = self.norm_alt.cdf(p_crit)
         except:
-            print('Could not eval p crit nor beta! Building normal distribution')
             self.norm_distribution()
             p_crit = self.norm_null.ppf(1 - thresh)
             beta = self.norm_alt.cdf(p_crit)
@@ -257,19 +256,42 @@ class BinomialExperiment():
 
         line_curve = dict(color = 'blue', width = 2)
 
-        x_axis = dict(title = 'Difference in Probabilities', showgrid = False, zeroline = False, showline = True, linecolor = 'black')
-        y_axis = dict(title = 'Density', showgrid = False, zeroline = False, showline = True, linecolor = 'black')
+        x_axis = dict(title = 'Difference in Probabilities',
+                        showgrid = False,
+                        zeroline = False,
+                        showline = True,
+                        linecolor = 'black')
+        y_axis = dict(title = 'Density',
+                        showgrid = False,
+                        zeroline = False,
+                        showline = True,
+                        linecolor = 'black')
 
         fig = go.Figure()
 
-        fig.add_trace(go.Scatter(x = x, y = y, mode = 'lines', showlegend = False, line = line_curve))
-        fig.add_trace(go.Scatter(x = x[x > observed_difference], y = y[np.where(x > observed_difference)], fill = 'tozeroy', showlegend = False, line = line_curve))
-        fig.add_vline(x = observed_difference, line_width = 2, line_dash = 'dash', line_color = 'black')
+        fig.add_trace(go.Scatter(x = x,
+                                    y = y,
+                                    mode = 'lines',
+                                    showlegend = False,
+                                    line = line_curve))
+        fig.add_trace(go.Scatter(x = x[x > observed_difference],
+                                    y = y[np.where(x > observed_difference)],
+                                    fill = 'tozeroy',
+                                    showlegend = False,
+                                    line = line_curve))
+        fig.add_vline(x = observed_difference,
+                        line_width = 2,
+                        line_dash = 'dash',
+                        line_color = 'black',
+                        annotation_text = 'P Crit',
+                        annotation_position = 'top right')
 
         fig.update_xaxes(x_axis)
         fig.update_yaxes(y_axis)
 
-        fig.update_layout(plot_bgcolor = 'white', width = 800, height = 600)
+        fig.update_layout(plot_bgcolor = 'white',
+                            width = 800,
+                            height = 600)
 
         if show:
             fig.show()
@@ -318,22 +340,53 @@ class BinomialExperiment():
         line_alt = dict(color = 'orange', width = 2)
 
         # Set axis parameters for visual styling
-        x_axis = dict(showgrid = False, title = 'Sample Mean Differences (Probabilities)', showline = True, linecolor = 'black', zeroline = False)
-        y_axis = dict(showgrid = False, title = 'Probability Density', showline = True, linecolor = 'black', zeroline = False)
+        x_axis = dict(showgrid = False,
+                        title = 'Sample Mean Differences (Probabilities)',
+                        showline = True,
+                        linecolor = 'black',
+                        zeroline = False)
+        y_axis = dict(showgrid = False,
+                        title = 'Probability Density',
+                        showline = True,
+                        linecolor = 'black',
+                        zeroline = False)
 
         fig = go.Figure()
         # Plot the null and alt distributions
-        fig.add_trace(go.Scatter(x = x, y = y_null, mode = 'lines', name = 'Null', line = line_null))
-        fig.add_trace(go.Scatter(x = x, y = y_alt, mode = 'lines', name = 'Alt', line = line_alt))
+        fig.add_trace(go.Scatter(x = x,
+                                    y = y_null,
+                                    mode = 'lines',
+                                    name = 'Null',
+                                    line = line_null))
+        fig.add_trace(go.Scatter(x = x,
+                                    y = y_alt,
+                                    mode = 'lines',
+                                    name = 'Alt',
+                                    line = line_alt))
         # Shade under each distribution (P and Beta)
-        fig.add_trace(go.Scatter(x = x[x > p_crit], y = y_null[np.where(x > p_crit)], fill = 'tozeroy', showlegend = False, line = line_null))
-        fig.add_trace(go.Scatter(x = x[x < p_crit], y = y_alt[np.where(x < p_crit)], fill = 'tozeroy', showlegend = False, line = line_alt))
+        fig.add_trace(go.Scatter(x = x[x > p_crit],
+                                    y = y_null[np.where(x > p_crit)],
+                                    fill = 'tozeroy',
+                                    showlegend = False,
+                                    line = line_null))
+        fig.add_trace(go.Scatter(x = x[x < p_crit],
+                                    y = y_alt[np.where(x < p_crit)],
+                                    fill = 'tozeroy',
+                                    showlegend = False,
+                                    line = line_alt))
         # Mark p_crit with a dashed vertical line
-        fig.add_vline(x = p_crit, line_width = 2, line_dash = 'dash', line_color = 'black')
+        fig.add_vline(x = p_crit,
+                    line_width = 2,
+                    line_dash = 'dash',
+                    line_color = 'black',
+                    annotation_text = 'P Crit',
+                    annotation_position = 'top right')
         # Apply axis configurations to the plot
         fig.update_xaxes(x_axis)
         fig.update_yaxes(y_axis)
-        fig.update_layout(plot_bgcolor = 'white', width = 800, height = 600)
+        fig.update_layout(plot_bgcolor = 'white',
+                            width = 800,
+                            height = 600)
 
         if show:
             fig.show()
@@ -382,7 +435,7 @@ class BinomialExperiment():
 
         return fig
 
-    def evaluate(self, plot = False, show = False):
+    def evaluate(self, plot = False, show = False, summary = True):
         """
         Calls other methods in this class in order to speed up the experiment evaluation
         process and make this class more intuitive to use.
@@ -396,7 +449,8 @@ class BinomialExperiment():
         self.simulate_significance()
         self.simulate_power()
 
-        print(self)
+        if summary:
+            print(self)
 
         if plot:
             fig1 = self.plot_p(show = show)
@@ -404,7 +458,7 @@ class BinomialExperiment():
 
             return fig1, fig2
 
-    def plan(self, plot = False, show = False):
+    def plan(self, plot = False, show = False, summary = True):
         """
         Call other methods in this class in order to speed up the experiment planning
         flow and make this class more intuitive to use.
@@ -423,7 +477,8 @@ class BinomialExperiment():
         self.sample_p = self.get_p_sample()
         self.p_value = self.simulate_significance()
 
-        print(self)
+        if summary:
+            print(summary)
 
         if plot:
             fig1 = self.plot_p(show = show)
