@@ -19,6 +19,9 @@ parser.add_argument('n_control',
 parser.add_argument('n_treatment',
                     type = int,
                     help = 'Count of observations in your treatment group.')
+parser.add_argument('--show',
+                    type = str,
+                    help = 'Optional (default no). When yes, output plots to default web browser.')
 
 def validate_cmd(args):
     """
@@ -40,19 +43,26 @@ def validate_cmd(args):
     else:
         raise ValueError('n_control and n_treatment must both be ints for this analysis to work.')
 
-    return p_control, p_treatment, n_control, n_treatment
+    if args.show and (args.show.lower() in ['yes','no']):
+        show = True if args.show.lower() == 'yes' else False
+    elif args.show == None:
+        show = False
+    else:
+        raise ValueError('show must be either "yes" or "no" (not case-sensitive)')
+
+    return p_control, p_treatment, n_control, n_treatment, show
 
 def main():
     """
     Function controlling the app's flow. Execute this when this file is run, directly.
     """
     args = parser.parse_args()
-    p_control, p_treatment, n_control, n_treatment = validate_cmd(args)
+    p_control, p_treatment, n_control, n_treatment, show = validate_cmd(args)
     experiment = BinomialExperiment(p_control = p_control,
                                     p_treatment = p_treatment,
                                     n_control = n_control,
                                     n_treatment = n_treatment)
-    fig_p, fig_power = experiment.evaluate(plot = True, show = True)
+    fig_p, fig_power = experiment.evaluate(plot = True, show = show)
 
 if __name__ == '__main__':
     main()

@@ -19,6 +19,9 @@ parser.add_argument('--power',
 parser.add_argument('--alpha',
                     type = float,
                     help = 'Optional (default 0.05). Your desired statistical significance threshold.')
+parser.add_argument('--show',
+                    type = str,
+                    help = 'Option (default no). Yes will generate plots in your default web browser. No skips that step.')
 
 def validate_cmd(args):
     """
@@ -48,19 +51,26 @@ def validate_cmd(args):
     else:
         raise ValueError('p_control needs to be between 0 and 1. Outcome rate in decimal form required.')
 
-    return p_control, p_treatment, power, alpha
+    if args.show and (args.show.lower() in ['yes','no']):
+        show = True if args.show.lower() == 'yes' else False
+    elif args.show == None:
+        show = False
+    else:
+        raise ValueError('show needs to be "yes" or "no" (not case-sensitive)')
+
+    return p_control, p_treatment, power, alpha, show
 
 def main():
     """
     Function controlling the app's flow. Execute this when this file is run, directly.
     """
     args = parser.parse_args()
-    p_control, p_treatment, power, alpha = validate_cmd(args)
+    p_control, p_treatment, power, alpha, show = validate_cmd(args)
     experiment = BinomialExperiment(p_control = p_control,
                                     p_treatment = p_treatment,
                                     power = power,
                                     alpha = alpha)
-    fig_p, fig_power, fig_curve = experiment.plan(plot = True, show = True)
+    fig_p, fig_power, fig_curve = experiment.plan(plot = True, show = show)
 
 if __name__ == '__main__':
     main()
