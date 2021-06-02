@@ -478,7 +478,7 @@ class BinomialExperiment():
         self.p_value = self.simulate_significance()
 
         if summary:
-            print(summary)
+            print(self)
 
         if plot:
             fig1 = self.plot_p(show = show)
