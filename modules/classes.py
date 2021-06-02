@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import pandas as pd
+
+import plotly.graph_objects as go
+import plotly.io as pio
 
 class BinomialExperiment():
     """
@@ -60,7 +61,7 @@ class BinomialExperiment():
             print('Sample size approaches infinity as power approaches 1, so 1 is an invalid power vlaue. Changing power to 0.99.')
             self.power = 0.99
         elif power == 0:
-            print('Sample size is undefined at power of 0. Changing power to 0.01.')
+            print('Sample size is undefined at power of 0, so 0 is an invalid power value. Changing power to 0.01.')
             self.power = 0.01
         else:
             self.power = power
@@ -82,20 +83,25 @@ class BinomialExperiment():
 
         return p_sample
 
-    def estimate_sample(self, power = 0):
+    def estimate_sample(self, power = None):
         """
-        Take desired effect size, alpha and desired power level. Return a minimum sample size (one group)
+        Take desired effect size, alpha and desired power level from self. Return a minimum sample size (one group)
         that would be necessary to acheive the desired experiment results.
 
         Allows the user to specify power and alpha here, if they didn't specify them when they instantiated the class.
         Otherwise, it takes the values provided to the class on instantiation.
+
+        NOTE: If a power value is supplied, this method will NOT change self.power. The ability
+        to set a power value here is designed to enable what-if testing scenarios. In those cases,
+        a user would not be changing experiment parameters but rather quickly checking to see what
+        would happen to sample size if power changed.
         """
-        if power > 0:
-            power = power
-        elif power == 0:
+        if power == None:
             power = self.power
+        elif power > 0 and power < 1:
+            power = power
         else:
-            raise Exception('Power provided is negative. That is nonsense. Please provide a positive power.')
+            raise ValueError('Power provided is negative. Please provide a positive power between 0 and 1.')
 
         z_null = stats.norm.ppf(1 - self.alpha)
         z_alt = stats.norm.ppf(1 - power)
@@ -110,8 +116,9 @@ class BinomialExperiment():
 
         sample_size = int(np.ceil(n))
 
-        self.n_control = sample_size
-        self.n_treatment = sample_size
+        if power == self.power:
+            self.n_control = sample_size
+            self.n_treatment = sample_size
 
         return sample_size
 
@@ -243,26 +250,32 @@ class BinomialExperiment():
 
         observed_difference = self.p_treatment - self.p_control
 
-        fig = plt.figure(figsize = (8,6))
-        ax = fig.add_subplot(1,1,1)
-
         mu, sigma = stats.norm.fit(difference)
         crit_density = stats.norm.pdf(observed_difference, mu, sigma)
 
         x = np.linspace(min(difference), max(difference), self.n_control + self.n_treatment)
         y = stats.norm.pdf(x, mu, sigma)
 
-        ax.plot(x, y, 'blue')
-        ax.vlines(x = observed_difference, ymin = 0, ymax = crit_density, linestyle = 'dashed', color = 'black')
-        ax.fill_between(x, y, 0, where = (x >= observed_difference), color = 'blue', alpha = 0.5)
+        line_curve = dict(color = 'blue', width = 2)
 
-        ax.set_xlabel('Difference in Probabilities')
-        ax.set_ylabel('Density')
+        x_axis = dict(title = 'Difference in Probabilities', showgrid = False, zeroline = False, showline = True, linecolor = 'black')
+        y_axis = dict(title = 'Density', showgrid = False, zeroline = False, showline = True, linecolor = 'black')
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x = x, y = y, mode = 'lines', showlegend = False, line = line_curve))
+        fig.add_trace(go.Scatter(x = x[x > observed_difference], y = y[np.where(x > observed_difference)], fill = 'tozeroy', showlegend = False, line = line_curve))
+        fig.add_vline(x = observed_difference, line_width = 2, line_dash = 'dash', line_color = 'black')
+
+        fig.update_xaxes(x_axis)
+        fig.update_yaxes(y_axis)
+
+        fig.update_layout(plot_bgcolor = 'white', width = 800, height = 600)
 
         if show:
-            plt.show();
+            fig.show()
 
-        return fig, ax
+        return fig
 
     def plot_power(self, show = False):
         """
@@ -301,30 +314,32 @@ class BinomialExperiment():
         y_null = self.norm_null.pdf(x)
         y_alt = self.norm_alt.pdf(x)
 
-        color_null = 'blue'
-        color_alt = 'orange'
+        # Set line parameters for visual styling
+        line_null = dict(color = 'blue', width = 2)
+        line_alt = dict(color = 'orange', width = 2)
 
-        fig = plt.figure(figsize = (8,6))
-        ax = fig.add_subplot(1,1,1)
+        # Set axis parameters for visual styling
+        x_axis = dict(showgrid = False, title = 'Sample Mean Differences (Probabilities)', showline = True, linecolor = 'black', zeroline = False)
+        y_axis = dict(showgrid = False, title = 'Probability Density', showline = True, linecolor = 'black', zeroline = False)
 
-        ax.plot(x, y_null, color = color_null)
-        ax.plot(x, y_alt, color = color_alt)
-        ax.vlines(x = p_crit, ymin = 0, ymax = max([self.norm_null.pdf(p_crit), self.norm_alt.pdf(p_crit)]), linestyle = 'dashed', color = 'black')
-        if self.p_treatment >= self.p_control:
-            ax.fill_between(x, y_alt, 0, where = (x <= p_crit), color = color_alt, alpha = 0.5)
-            ax.fill_between(x, y_null, 0, where = (x >= p_crit), color = color_null, alpha = 0.5)
-        else:
-            ax.fill_between(x, y_alt, 0, where = (x >= p_crit), color = color_alt, alpha = 0.5)
-            ax.fill_between(x, y_null, 0, where = (x <= p_crit), color = color_null, alpha = 0.5)
-
-        ax.set_xlabel('Sample Mean Differences (Probabilities)')
-        ax.set_ylabel('Probability Density')
-        ax.legend(['Null','Alt'])
+        fig = go.Figure()
+        # Plot the null and alt distributions
+        fig.add_trace(go.Scatter(x = x, y = y_null, mode = 'lines', name = 'Null', line = line_null))
+        fig.add_trace(go.Scatter(x = x, y = y_alt, mode = 'lines', name = 'Alt', line = line_alt))
+        # Shade under each distribution (P and Beta)
+        fig.add_trace(go.Scatter(x = x[x > p_crit], y = y_null[np.where(x > p_crit)], fill = 'tozeroy', showlegend = False, line = line_null))
+        fig.add_trace(go.Scatter(x = x[x < p_crit], y = y_alt[np.where(x < p_crit)], fill = 'tozeroy', showlegend = False, line = line_alt))
+        # Mark p_crit with a dashed vertical line
+        fig.add_vline(x = p_crit, line_width = 2, line_dash = 'dash', line_color = 'black')
+        # Apply axis configurations to the plot
+        fig.update_xaxes(x_axis)
+        fig.update_yaxes(y_axis)
+        fig.update_layout(plot_bgcolor = 'white', width = 800, height = 600)
 
         if show:
-            plt.show();
+            fig.show()
 
-        return fig, ax
+        return fig
 
     def plot_power_curve(self, show = False):
         """
@@ -347,25 +362,26 @@ class BinomialExperiment():
             size = self.estimate_sample(power = p)
             sample_sizes.append(size)
 
-        fig = plt.figure(figsize = (8,6))
-        ax = fig.add_subplot(1,1,1)
-
         x = power_levels
         y = sample_sizes
 
-        ax.plot(x, y, color = 'blue')
-        ax.vlines(x = self.power, ymin = 0, ymax = max(sample_sizes), linestyle = 'dashed', color = 'black')
-        ax.set_xlabel('Statistical Power')
-        ax.set_ylabel('Recommended Size per Sample at Alpha = 0.05')
+        line_curve = dict(color = 'blue', width = 2)
 
-        ticks = ax.get_yticks().tolist()
-        ax.yaxis.set_major_locator(mticker.FixedLocator(ticks))
-        ax.set_yticklabels(['{:,}'.format(int(x)) for x in ticks])
+        x_axis = dict(title = 'Statistical Power', showline = True, linecolor = 'black', zeroline = False, showgrid = False)
+        y_axis = dict(title = 'Recommended Size per Sample at Alpha 0.05', showline = True, linecolor = 'black', zeroline = False, showgrid = False)
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x = x, y = y, mode = 'lines', showlegend = False, line = line_curve))
+        fig.add_vline(x = self.power, line_dash = 'dash', line_color = 'black', line_width = 2)
+
+        fig.update_xaxes(x_axis)
+        fig.update_yaxes(y_axis)
+        fig.update_layout(plot_bgcolor = 'white', width = 800, height = 600)
 
         if show:
-            plt.show();
+            fig.show();
 
-        return fig, ax
+        return fig
 
     def evaluate(self, plot = False, show = False):
         """
@@ -384,12 +400,12 @@ class BinomialExperiment():
         print(self)
 
         if plot:
-            fig1, ax1 = self.plot_p(show = show)
-            fig2, ax2 = self.plot_power(show = show)
+            fig1 = self.plot_p(show = show)
+            fig2 = self.plot_power(show = show)
 
-            return [fig1, ax1], [fig2, ax2]
+            return fig1, fig2
 
-    def plan(self):
+    def plan(self, plot = False, show = False):
         """
         Call other methods in this class in order to speed up the experiment planning
         flow and make this class more intuitive to use.
@@ -409,6 +425,13 @@ class BinomialExperiment():
         self.p_value = self.simulate_significance()
 
         print(self)
+
+        if plot:
+            fig1 = self.plot_p(show = show)
+            fig2 = self.plot_power(show = show)
+            fig3 = self.plot_power_curve(show = show)
+
+            return fig1, fig2, fig3
 
     def __repr__(self):
         """
