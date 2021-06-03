@@ -2,8 +2,10 @@ import argparse
 import os
 import sys
 from PIL import Image
+import webbrowser
 
 from modules.classes import BinomialExperiment
+from modules.functions import create_dashboard
 
 os.chdir(os.path.dirname(sys.argv[0]))
 
@@ -78,18 +80,13 @@ def main():
     figs = experiment.plan(plot = True)
     if show:
         save_location = 'images'
-        file_prefix = '/plan_'
+        filename = '/plan.html'
 
         if not os.path.exists(save_location):
             os.mkdir(save_location)
 
-        for fig in figs:
-            filename = fig.layout.title.text.lower().replace(' ','_')
-            file = save_location + file_prefix + filename + '.webp'
-            fig.write_image(file)
-            im = Image.open(file)
-            im.show()
-
+        create_dashboard(figs, save_location + filename)
+        webbrowser.open(save_location + filename)
 
 if __name__ == '__main__':
     main()

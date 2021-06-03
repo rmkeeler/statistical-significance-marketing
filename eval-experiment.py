@@ -2,8 +2,10 @@ import argparse
 from PIL import Image
 import sys
 import os
+import webbrowser as wb
 
 from modules.classes import BinomialExperiment
+from modules.functions import create_dashboard
 
 # No matter how this script is run, make sure it treats its own directory as the working directory
 # This makes sure that relative file referencing always does what's expected
@@ -75,17 +77,13 @@ def main():
     if show:
         # Save image to a folder in root called "images" then open them in default image program
         save_location = 'images'
-        file_prefix = '/eval_'
+        filename = '/eval.html'
 
         if not os.path.exists(save_location):
             os.mkdir(save_location)
 
-        for fig in figs:
-            filename = fig.layout.title.text.lower().replace(' ','_')
-            file = save_location + file_prefix + filename + '.webp'
-            fig.write_image(file)
-            im = Image.open(file)
-            im.show()
+        create_dashboard(figs, save_location + filename)
+        wb.get('chrome %s').open(os.path.dirname(sys.argv[0]) + save_location + filename)
 
 if __name__ == '__main__':
     main()
