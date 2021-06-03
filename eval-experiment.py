@@ -75,13 +75,14 @@ def main():
     if show:
         # Save image to a folder in root called "images" then open them in default image program
         save_location = 'images'
-        p_file = '/eval_p_value.webp'
-        power_file = '/eval_power.webp'
+        file_prefix = '/eval_'
 
         if not os.path.exists(save_location):
             os.mkdir(save_location)
 
-        for fig, file in zip(figs, [save_location+p_file, save_location+power_file]):
+        for fig in figs:
+            filename = fig.layout.title.text.lower().replace(' ','_')
+            file = save_location + file_prefix + filename + '.webp'
             fig.write_image(file)
             im = Image.open(file)
             im.show()

@@ -293,7 +293,8 @@ class BinomialExperiment():
 
         fig.update_layout(plot_bgcolor = 'white',
                             width = 800,
-                            height = 600)
+                            height = 600,
+                            title = 'Significance')
 
         if show:
             # Intended to be used in notebooks.
@@ -390,7 +391,8 @@ class BinomialExperiment():
         fig.update_yaxes(y_axis)
         fig.update_layout(plot_bgcolor = 'white',
                             width = 800,
-                            height = 600)
+                            height = 600,
+                            title = 'Power')
 
         if show:
             fig.show()
@@ -432,7 +434,10 @@ class BinomialExperiment():
 
         fig.update_xaxes(x_axis)
         fig.update_yaxes(y_axis)
-        fig.update_layout(plot_bgcolor = 'white', width = 800, height = 600)
+        fig.update_layout(plot_bgcolor = 'white',
+                            width = 800,
+                            height = 600,
+                            title = 'Sample Curve')
 
         if show:
             fig.show();

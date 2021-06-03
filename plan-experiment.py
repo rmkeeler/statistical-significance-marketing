@@ -78,14 +78,14 @@ def main():
     figs = experiment.plan(plot = True)
     if show:
         save_location = 'images'
-        p_file = '/plan_p_value.webp'
-        power_file = '/plan_power.webp'
-        curve_file = '/plan_curve.webp'
+        file_prefix = '/plan_'
 
         if not os.path.exists(save_location):
             os.mkdir(save_location)
 
-        for fig, file in zip(figs, [save_location+p_file, save_location+power_file, save_location+curve_file]):
+        for fig in figs:
+            filename = fig.layout.title.text.lower().replace(' ','_')
+            file = save_location + file_prefix + filename + '.webp'
             fig.write_image(file)
             im = Image.open(file)
             im.show()
