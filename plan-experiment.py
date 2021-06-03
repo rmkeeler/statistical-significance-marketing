@@ -86,7 +86,6 @@ def main():
             os.mkdir(save_location)
 
         create_dashboard(figs, save_location + filename)
-        webbrowser.open(save_location + filename)
 
 if __name__ == '__main__':
     main()
