@@ -2,6 +2,8 @@ import numpy as np
 import scipy.stats as stats
 import pandas as pd
 
+import os
+
 import plotly.graph_objects as go
 
 class BinomialExperiment():
@@ -294,7 +296,9 @@ class BinomialExperiment():
                             height = 600)
 
         if show:
-            fig.show()
+            # Intended to be used in notebooks.
+            # .py app files that use this module will handle saving and opening from desktop
+            fig.show();
 
         return fig
 

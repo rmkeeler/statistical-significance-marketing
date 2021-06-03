@@ -1,6 +1,15 @@
 import argparse
-import numpy as np
+from PIL import Image
+import sys
+import os
+
 from modules.classes import BinomialExperiment
+
+# No matter how this script is run, make sure it treats its own directory as the working directory
+# This makes sure that relative file referencing always does what's expected
+# Keeps all input and output within this project's directory structure
+os.chdir(os.path.dirname(sys.argv[0]))
+
 
 # Parse command line arguments
 # Instantiate parser
@@ -62,7 +71,20 @@ def main():
                                     p_treatment = p_treatment,
                                     n_control = n_control,
                                     n_treatment = n_treatment)
-    fig_p, fig_power = experiment.evaluate(plot = True, show = show)
+    figs = experiment.evaluate(plot = True)
+    if show:
+        # Save image to a folder in root called "images" then open them in default image program
+        save_location = 'images'
+        p_file = '/eval_p_value.webp'
+        power_file = '/eval_power.webp'
+
+        if not os.path.exists(save_location):
+            os.mkdir(save_location)
+
+        for fig, file in zip(figs, [save_location+p_file, save_location+power_file]):
+            fig.write_image(file)
+            im = Image.open(file)
+            im.show()
 
 if __name__ == '__main__':
     main()
