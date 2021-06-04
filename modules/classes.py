@@ -185,7 +185,7 @@ class BinomialExperiment():
         self.norm_null = dist_null
         self.norm_alt = dist_alt
 
-    def confidence_intervals(self, level = 95, plot = False):
+    def confidence_intervals(self, level = 95):
         """
         Calculate level% confidence intervals for control distribution and treatment
         distribution. If plot == True, also return a plot contrasting the two
@@ -207,58 +207,88 @@ class BinomialExperiment():
 
         control_upper = np.percentile(a = control, q = level + margin)
         control_lower = np.percentile(a = control, q = margin)
-        control_int = [control_lower, control_upper]
+        self.interval_control = {'lower': control_lower, 'upper':control_upper, 'level':level}
 
         treatment_upper = np.percentile(a = treatment, q = level + margin)
         treatment_lower = np.percentile(a = treatment, q = margin)
-        treatment_int = [treatment_lower, treatment_upper]
+        self.interval_treatment = {'lower': treatment_lower, 'upper':treatment_upper, 'level':level}
 
-        if plot:
-            low_end = min(control_lower, treatment_lower)
-            high_end = max(control_upper, treatment_upper)
-            r = high_end - low_end
-            low_lim = low_end - (0.1 * r)
-            high_lim = high_end + (0.1 * r)
+        return self.interval_control, self.interval_treatment
 
-            data = [
-                go.Scatter(
-                    mode = 'lines+markers',
-                    line = dict(color = 'blue', width = 2),
-                    x = control_int,
-                    y = [0.75 for i in range(len(control_int))],
-                    name = 'Control'
-                ),
-                go.Scatter(
-                    mode = 'lines+markers',
-                    line = dict(color = 'orange', width = 2),
-                    x = treatment_int,
-                    y = [1.25 for i in range(len(treatment_int))],
-                    name = 'Treatment'
-                )
-            ]
+    def plot_confidence(self, level = None, show = False):
+        """
+        Looks for confidence intervals in self.interval_control and self.interval_treatment.
+        Plots them together for easy contrast.
+        Returns a fig and will call plotly's fig.show() if show == True.
 
-            layout = dict(
-                title = '{}% Confidence Intervals, Treatment vs Control'.format(level),
-                plot_bgcolor = 'white',
-                height = 300,
-                width = 800,
-                xaxis = dict(title = 'Probabilities',
-                                range = (low_lim, high_lim),
-                                showgrid = False,
-                                zeroline = False,
-                                showline = True,
-                                linecolor = 'black'),
-                yaxis = dict(range = (0,2),
-                                showgrid = False,
-                                zeroline = False,
-                                showline = True,
-                                linecolor = 'black')
+        If level is provided, method will calculate new confidence intervals with the provided level.
+        If not and confidence intervals have already been calculated, level used during previous calc will be used.
+        If not and this is the first time confidence intervals are being calculated, 95% will be assumed.
+        """
+        try: # Check to see if intervals have been calculated, already
+            if level and level != self.interval_control['level']:
+                self.confidence_intervals(level = level)
+            else:
+                level = self.interval_control['level']
+        except: # If not, calculate them
+            if level == None:
+                level = 95
+            self.confidence_intervals(level = level)
+
+        int_control = [self.interval_control[k] for k in ['lower','upper']]
+        int_treatment = [self.interval_treatment[k] for k in ['lower','upper']]
+
+        low_end = min(int_control[0], int_treatment[0])
+        high_end = max(int_control[1], int_treatment[1])
+        r = high_end - low_end
+        low_lim = low_end - (0.1 * r)
+        high_lim = high_end + (0.1 * r)
+
+        data = [
+            go.Scatter(
+                mode = 'lines+markers',
+                line = dict(color = 'blue', width = 4),
+                marker = dict(color = 'black', size = 10, symbol = 'line-ns-open'),
+                x = int_control,
+                y = [0.75 for i in range(len(int_control))],
+                name = 'Control'
+            ),
+            go.Scatter(
+                mode = 'lines+markers',
+                line = dict(color = 'orange', width = 4),
+                marker = dict(color = 'black', size = 10, symbol = 'line-ns-open'),
+                x = int_treatment,
+                y = [1.25 for i in range(len(int_treatment))],
+                name = 'Treatment'
             )
+        ]
 
-            fig = go.Figure(data = data, layout = layout)
+        layout = dict(
+            title = '{}% Confidence Intervals, Treatment vs Control'.format(level),
+            plot_bgcolor = 'white',
+            height = 350,
+            width = 800,
+            xaxis = dict(title = 'Probabilities',
+                            range = (low_lim, high_lim),
+                            showgrid = False,
+                            zeroline = False,
+                            showline = True,
+                            linecolor = 'black',
+                            tickformat = ',.0%'),
+            yaxis = dict(range = (0,2),
+                            showgrid = False,
+                            zeroline = False,
+                            showline = True,
+                            linecolor = 'black',
+                            visible = False)
+        )
+
+        fig = go.Figure(data = data, layout = layout)
+
+        if show:
             fig.show()
 
-        return control_int, treatment_int
+        return fig
 
     def analyze_significance(self):
         """
@@ -329,7 +359,7 @@ class BinomialExperiment():
         try:
             difference = self.binom_null
         except:
-            self.binom_distribution()
+            self.simulate_significance()
             difference = self.binom_null
 
         observed_difference = self.p_treatment - self.p_control
@@ -342,43 +372,52 @@ class BinomialExperiment():
 
         line_curve = dict(color = 'blue', width = 2)
 
-        x_axis = dict(title = 'Difference in Probabilities',
-                        showgrid = False,
-                        zeroline = False,
-                        showline = True,
-                        linecolor = 'black')
-        y_axis = dict(title = 'Density',
-                        showgrid = False,
-                        zeroline = False,
-                        showline = True,
-                        linecolor = 'black')
+        data = [
+            go.Scatter(
+                x = x,
+                y = y,
+                mode = 'lines',
+                showlegend = False,
+                line = line_curve
+            ),
+            go.Scatter(
+                x = x[x > observed_difference],
+                y = y[np.where(x > observed_difference)],
+                fill = 'tozeroy',
+                showlegend = False,
+                line = line_curve
+            )
+        ]
 
-        fig = go.Figure()
+        layout = dict(
+            plot_bgcolor = 'white',
+            width = 800,
+            height = 600,
+            title = 'Significance',
+            xaxis = dict(
+                title = 'Difference in Probabilities',
+                showgrid = False,
+                zeroline = False,
+                showline = True,
+                linecolor = 'black'
+            ),
+            yaxis = dict(
+                title = 'Density',
+                showgrid = False,
+                zeroline = False,
+                showline = True,
+                linecolor = 'black'
+            )
+        )
 
-        fig.add_trace(go.Scatter(x = x,
-                                    y = y,
-                                    mode = 'lines',
-                                    showlegend = False,
-                                    line = line_curve))
-        fig.add_trace(go.Scatter(x = x[x > observed_difference],
-                                    y = y[np.where(x > observed_difference)],
-                                    fill = 'tozeroy',
-                                    showlegend = False,
-                                    line = line_curve))
+        fig = go.Figure(data = data, layout = layout)
+
         fig.add_vline(x = observed_difference,
                         line_width = 2,
                         line_dash = 'dash',
                         line_color = 'black',
-                        annotation_text = 'P Crit',
+                        annotation_text = 'P Value {:.4f}'.format(self.p_value),
                         annotation_position = 'top right')
-
-        fig.update_xaxes(x_axis)
-        fig.update_yaxes(y_axis)
-
-        fig.update_layout(plot_bgcolor = 'white',
-                            width = 800,
-                            height = 600,
-                            title = 'Significance')
 
         if show:
             # Intended to be used in notebooks.
@@ -409,7 +448,7 @@ class BinomialExperiment():
             p_crit = self.norm_null.ppf(1 - thresh)
             beta = self.norm_alt.cdf(p_crit)
         except:
-            self.norm_distribution()
+            self.simulate_power()
             p_crit = self.norm_null.ppf(1 - thresh)
             beta = self.norm_alt.cdf(p_crit)
 
@@ -428,55 +467,71 @@ class BinomialExperiment():
         line_null = dict(color = 'blue', width = 2)
         line_alt = dict(color = 'orange', width = 2)
 
-        # Set axis parameters for visual styling
-        x_axis = dict(showgrid = False,
-                        title = 'Sample Mean Differences (Probabilities)',
-                        showline = True,
-                        linecolor = 'black',
-                        zeroline = False)
-        y_axis = dict(showgrid = False,
-                        title = 'Probability Density',
-                        showline = True,
-                        linecolor = 'black',
-                        zeroline = False)
-
-        fig = go.Figure()
         # Plot the null and alt distributions
-        fig.add_trace(go.Scatter(x = x,
-                                    y = y_null,
-                                    mode = 'lines',
-                                    name = 'Null',
-                                    line = line_null))
-        fig.add_trace(go.Scatter(x = x,
-                                    y = y_alt,
-                                    mode = 'lines',
-                                    name = 'Alt',
-                                    line = line_alt))
-        # Shade under each distribution (P and Beta)
-        fig.add_trace(go.Scatter(x = x[x > p_crit],
-                                    y = y_null[np.where(x > p_crit)],
-                                    fill = 'tozeroy',
-                                    showlegend = False,
-                                    line = line_null))
-        fig.add_trace(go.Scatter(x = x[x < p_crit],
-                                    y = y_alt[np.where(x < p_crit)],
-                                    fill = 'tozeroy',
-                                    showlegend = False,
-                                    line = line_alt))
+        data = [
+            go.Scatter(
+                x = x,
+                y = y_null,
+                mode = 'lines',
+                name = 'Null',
+                line = line_null
+            ),
+            go.Scatter(
+                x = x,
+                y = y_alt,
+                mode = 'lines',
+                name = 'alt',
+                line = line_alt
+            ),
+            # Shade P under null distribution
+            go.Scatter(
+                x = x[x > p_crit],
+                y = y_null[np.where(x > p_crit)],
+                fill = 'tozeroy',
+                showlegend = False,
+                line = line_null
+            ),
+            # Shade beta under alt distribution
+            go.Scatter(
+                x = x[x < p_crit],
+                y = y_alt[np.where(x < p_crit)],
+                fill = 'tozeroy',
+                showlegend = False,
+                line = line_alt
+            )
+        ]
+
+        # Apply axis configurations to the plot
+        layout = dict(
+            yaxis = dict(
+                showgrid = False,
+                title = 'Probability Density',
+                showline = True,
+                linecolor = 'black',
+                zeroline = False
+            ),
+            xaxis = dict(
+                showgrid = False,
+                title = 'Sample Mean Diffrences (Probabilities)',
+                showline = True,
+                linecolor = 'black',
+                zeroline = False
+            ),
+            plot_bgcolor = 'white',
+            width = 800,
+            height = 600,
+            title = 'Power'
+        )
+
+        fig = go.Figure(data = data, layout = layout)
+
         # Mark p_crit with a dashed vertical line
         fig.add_vline(x = p_crit,
                     line_width = 2,
                     line_dash = 'dash',
                     line_color = 'black',
-                    annotation_text = 'P Crit',
+                    annotation_text = 'P Crit (Power {:.2f})'.format(self.power),
                     annotation_position = 'top right')
-        # Apply axis configurations to the plot
-        fig.update_xaxes(x_axis)
-        fig.update_yaxes(y_axis)
-        fig.update_layout(plot_bgcolor = 'white',
-                            width = 800,
-                            height = 600,
-                            title = 'Power')
 
         if show:
             fig.show()
@@ -541,6 +596,7 @@ class BinomialExperiment():
         self.get_p_sample()
         self.simulate_significance()
         self.simulate_power()
+        self.confidence_intervals()
 
         if summary:
             print(self)
@@ -548,8 +604,9 @@ class BinomialExperiment():
         if plot:
             fig1 = self.plot_p(show = show)
             fig2 = self.plot_power(show = show)
+            fig3 = self.plot_confidence(show = show)
 
-            return fig1, fig2
+            return fig1, fig2, fig3
 
     def plan(self, plot = False, show = False, summary = True):
         """
@@ -565,10 +622,11 @@ class BinomialExperiment():
         rate required to be meaningful to the business. Alpha is desired significance level
         (almost always, 0.05 is desired).
         """
-        self.n_control = self.estimate_sample()
-        self.n_treatment = self.n_control
-        self.sample_p = self.get_p_sample()
-        self.p_value = self.simulate_significance()
+        self.estimate_sample()
+        self.n_control
+        self.get_p_sample()
+        self.simulate_significance()
+        self.confidence_intervals()
 
         if summary:
             print(self)
@@ -577,8 +635,9 @@ class BinomialExperiment():
             fig1 = self.plot_p(show = show)
             fig2 = self.plot_power(show = show)
             fig3 = self.plot_power_curve(show = show)
+            fig4 = self.plot_confidence(show = show)
 
-            return fig1, fig2, fig3
+            return fig1, fig2, fig3, fig4
 
     def __repr__(self):
         """
