@@ -6,6 +6,7 @@ import webbrowser
 
 from modules.classes import BinomialExperiment
 from modules.functions import create_dashboard
+from modules.functions import save_images
 
 os.chdir(os.path.dirname(sys.argv[0]))
 
@@ -79,13 +80,14 @@ def main():
                                     alpha = alpha)
     figs = experiment.plan(plot = True)
     if show:
-        save_location = 'images'
-        filename = '/plan.html'
+        save_location = 'images/plan'
+        filename = '/dashboard.html'
 
         if not os.path.exists(save_location):
             os.mkdir(save_location)
 
         create_dashboard(figs, save_location + filename)
+        save_images(figs, save_location)
 
 if __name__ == '__main__':
     main()

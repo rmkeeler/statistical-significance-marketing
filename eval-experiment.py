@@ -6,6 +6,7 @@ import webbrowser as wb
 
 from modules.classes import BinomialExperiment
 from modules.functions import create_dashboard
+from modules.functions import save_images
 
 # No matter how this script is run, make sure it treats its own directory as the working directory
 # This makes sure that relative file referencing always does what's expected
@@ -76,14 +77,14 @@ def main():
     figs = experiment.evaluate(plot = True)
     if show:
         # Save image to a folder in root called "images" then open them in default image program
-        save_location = 'images'
-        filename = '/eval.html'
+        save_location = 'images/eval'
+        filename = '/dashboard.html'
 
         if not os.path.exists(save_location):
             os.mkdir(save_location)
 
         create_dashboard(figs, save_location + filename)
-        wb.get('chrome %s').open(os.path.dirname(sys.argv[0]) + save_location + filename)
+        save_images(figs, save_location)
 
 if __name__ == '__main__':
     main()

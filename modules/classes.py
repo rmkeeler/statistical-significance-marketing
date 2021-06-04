@@ -47,6 +47,9 @@ class BinomialExperiment():
         self.binom_null = None
         self.binom_alt = None
 
+        self.binom_control = None
+        self.binom_treatment = None
+
         if n_control > 0 and n_treatment > 0 and p_control > 0 and p_treatment > 0:
             control = self.p_control * self.n_control
             treatment = self.p_treatment * self.n_treatment
@@ -147,6 +150,9 @@ class BinomialExperiment():
 
         self.binom_null = null_treatment - null_control
         self.binom_alt = alt_treatment - alt_control
+
+        self.binom_control = alt_control
+        self.binom_treatment = alt_treatment
 
     def norm_distribution(self):
         """
