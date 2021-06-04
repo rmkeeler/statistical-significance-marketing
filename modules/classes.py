@@ -50,6 +50,9 @@ class BinomialExperiment():
         self.binom_control = None
         self.binom_treatment = None
 
+        self.confidence_control = None
+        self.confidence_treatment = None
+
         if n_control > 0 and n_treatment > 0 and p_control > 0 and p_treatment > 0:
             control = self.p_control * self.n_control
             treatment = self.p_treatment * self.n_treatment
@@ -181,6 +184,81 @@ class BinomialExperiment():
         dist_alt = stats.norm(loc = self.p_treatment - self.p_control, scale = sterror_alt)
         self.norm_null = dist_null
         self.norm_alt = dist_alt
+
+    def confidence_intervals(self, level = 95, plot = False):
+        """
+        Calculate level% confidence intervals for control distribution and treatment
+        distribution. If plot == True, also return a plot contrasting the two
+        intervals.
+
+        Useful insight in addition to p value and power to understand how confident
+        we can be in an experiment's conclusion (contrast interval overlap).
+        """
+        margin = (100 - level) / 2 # interval is middle level% of vals, so this is margin to either side of it
+        try:
+            len(self.binom_control)
+            len(self.binom_treatment)
+
+        except:
+            self.binom_distribution()
+
+        control = self.binom_control
+        treatment = self.binom_treatment
+
+        control_upper = np.percentile(a = control, q = level + margin)
+        control_lower = np.percentile(a = control, q = margin)
+        control_int = [control_lower, control_upper]
+
+        treatment_upper = np.percentile(a = treatment, q = level + margin)
+        treatment_lower = np.percentile(a = treatment, q = margin)
+        treatment_int = [treatment_lower, treatment_upper]
+
+        if plot:
+            low_end = min(control_lower, treatment_lower)
+            high_end = max(control_upper, treatment_upper)
+            r = high_end - low_end
+            low_lim = low_end - (0.1 * r)
+            high_lim = high_end + (0.1 * r)
+
+            data = [
+                go.Scatter(
+                    mode = 'lines+markers',
+                    line = dict(color = 'blue', width = 2),
+                    x = control_int,
+                    y = [0.75 for i in range(len(control_int))],
+                    name = 'Control'
+                ),
+                go.Scatter(
+                    mode = 'lines+markers',
+                    line = dict(color = 'orange', width = 2),
+                    x = treatment_int,
+                    y = [1.25 for i in range(len(treatment_int))],
+                    name = 'Treatment'
+                )
+            ]
+
+            layout = dict(
+                title = '{}% Confidence Intervals, Treatment vs Control'.format(level),
+                plot_bgcolor = 'white',
+                height = 300,
+                width = 800,
+                xaxis = dict(title = 'Probabilities',
+                                range = (low_lim, high_lim),
+                                showgrid = False,
+                                zeroline = False,
+                                showline = True,
+                                linecolor = 'black'),
+                yaxis = dict(range = (0,2),
+                                showgrid = False,
+                                zeroline = False,
+                                showline = True,
+                                linecolor = 'black')
+            )
+
+            fig = go.Figure(data = data, layout = layout)
+            fig.show()
+
+        return control_int, treatment_int
 
     def analyze_significance(self):
         """
