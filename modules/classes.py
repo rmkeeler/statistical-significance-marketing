@@ -130,6 +130,8 @@ class BinomialExperiment():
 
         sample_size = int(np.ceil(n))
 
+        # Don't update self.power if this was just a what-if simulation.
+        # Only update self.power if this is run to update experiment parameters.
         if power == self.power:
             self.n_control = sample_size
             self.n_treatment = sample_size
