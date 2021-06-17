@@ -58,9 +58,7 @@ class BinomialExperiment():
             treatment = self.p_treatment * self.n_treatment
             sample = self.n_control + self.n_treatment
 
-            p_sample = (control + treatment) / sample
-
-            self.p_sample = p_sample
+            self.p_sample = (control + treatment) / sample
         else:
             self.p_sample = None
 
