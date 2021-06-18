@@ -4,7 +4,7 @@ import sys
 from PIL import Image
 import webbrowser
 
-from modules.classes import BinomialExperiment
+from modules.binomial import BinomialExperiment
 from modules.functions import create_dashboard
 from modules.functions import save_images
 
