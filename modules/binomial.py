@@ -646,7 +646,7 @@ class BinomialExperiment():
 
             return fig1, fig2, fig3, fig4
 
-    def ingest_data(self, data, control_name, treatment_name):
+    def ingest_data(self, data, control_name, treatment_name, evaluate = True):
         """
         Give this a dataframe of two columns: group assignment and outcome (binary).
         For now, this is used to contrast two groups (like the rest of this class).
@@ -657,8 +657,11 @@ class BinomialExperiment():
 
         Just feed the dataset, view report out to validate results, and go.
 
-        control_name is the name of the control group as appears in group column.
-        treatment_name is name of treatment group as appears in group column.
+        args:
+            data: two-column dataframe containing grouping variable and binary outcome variable
+            control_name: name of the control group as appears in group column
+            treatment_name: name of treatment group as appears in group column
+            eval: when true, calcs power and p value for the class instance
         """
         # Validate the most obvious source of mistakes: more than 2 columns in df.
         try:
@@ -698,6 +701,10 @@ class BinomialExperiment():
 
         self.p_treatment = metrics.loc[treatment_name, 'mean']
         self.n_treatment = metrics.loc[treatment_name, 'count']
+
+        if evaluate:
+            self.simulate_significance()
+            self.simulate_power()
 
         print(self)
 
