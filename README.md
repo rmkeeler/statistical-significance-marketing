@@ -1,10 +1,16 @@
 # Table of Contents
 
-1. [Project Motivation](#motivation)
-2. [Usage Instructions](#instructions)
-3. [File Descriptions](#files)
-4. [Results](#results)
+1. [Updates](#updates)
+2. [Project Motivation](#motivation)
+3. [Usage Instructions](#instructions)
+4. [File Descriptions](#files)
 5. [Acknowledgements](#credit)
+
+# Updates <a name = "updates"></a>
+Current version: 2021-07-24
+
+- Experimenter can now evaluate a basic experiment results dataset with BinomialExperiment.ingest_data()
+- Still designed for experiments with binary outcomes (follow a binomial distribution)
 
 # Project Motivation <a name = "motivation"></a>
 In completing this project, my primary motivation is learning the ins and outs of statistical hypothesis testing and exploring the relationships among statistical power, effect size and sample size.
@@ -20,10 +26,8 @@ A second motivation has since emerged: creating a web app that allows a marketer
 
 # File Descriptions <a name = "files"></a>
 
-# Results <a name = "results"></a>
-
 # Acknowledgements <a name = "credit"></a>
 
 This is a personal project that I started while enrolled as a student in [Udacity's](https://www.udacity.com/) Data Scientist Nanodegree program.
 
-I've written all code and designed all programs, here. However, I've been influenced by methods and techniques demonstrated by my instructors at Udacity, so it's no doubt that their ideas have played some role in the development of this app.
+I've written all code and designed all programs, here. However, I've been influenced by methods and techniques demonstrated by my instructors at Udacity.
