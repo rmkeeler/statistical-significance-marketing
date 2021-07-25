@@ -21,6 +21,7 @@ A second motivation has since emerged: creating a web app that allows a marketer
 
 1. Test the results of split tests for statistical significance
 2. Plan such split tests by determining how large a test sample needs to be in order to detect a desired effect size.
+3. Explore confidence intervals when they are more insightful or easier to communicate than significance
 
 # Usage Instructions <a name = "instructions"></a>
 
