@@ -519,7 +519,7 @@ class BinomialExperiment():
             ),
             xaxis = dict(
                 showgrid = False,
-                title = 'Sample Mean Diffrences (Probabilities)',
+                title = 'Sample Mean Differences (Probabilities)',
                 showline = True,
                 linecolor = 'black',
                 zeroline = False
@@ -645,6 +645,68 @@ class BinomialExperiment():
             fig4 = self.plot_confidence(show = show)
 
             return fig1, fig2, fig3, fig4
+
+    def ingest_data(self, data, control_name, treatment_name, evaluate = True):
+        """
+        Give this a dataframe of two columns: group assignment and outcome (binary).
+        For now, this is used to contrast two groups (like the rest of this class).
+
+        This function will populate sample sizes and probabilities using the dataset.
+        Can be much quicker when a dataset is on hand, as it takes calculations of these
+        variables out of the hands of the analyst.
+
+        Just feed the dataset, view report out to validate results, and go.
+
+        args:
+            data: two-column dataframe containing grouping variable and binary outcome variable
+            control_name: name of the control group as appears in group column
+            treatment_name: name of treatment group as appears in group column
+            eval: when true, calcs power and p value for the class instance
+        """
+        # Validate the most obvious source of mistakes: more than 2 columns in df.
+        try:
+            assert(len(data.columns) == 2)
+        except AssertionError:
+            print("ERROR: Data must have only two columns: group column and outcome column")
+            print("Data currently has {} columns: {}.".format(len(data.columns), list(data.columns)))
+            return
+
+        # First, identify the group column and the binary outcome column
+        group_col = ''
+        outcome_col = ''
+        # count outcome cols found using logic below to see if multiple columns are (0,1)
+        # and are therefore confusing to the method.
+        outcome_cols = 0
+
+        for idx in range(len(data.columns)):
+            col = data.columns[idx]
+            if sorted(data[col].unique()) == [0,1]:
+                outcome_col = col
+                outcome_cols+=1
+            else:
+                group_col = col
+
+        # Exit function if method thinks it found 2 outcome columns.
+        try:
+            assert(outcome_cols == 1)
+        except AssertionError:
+            print('Multiple outcome columns found. To avoid confusion, make sure groups do not take [0,1] as values.')
+            return
+
+        # Group data and aggregate outcome by mean and count
+        # We can then pull rates and sample sizes directly from the resulting frame
+        metrics = data.groupby(group_col)[outcome_col].agg(['mean','count'])
+        self.p_control = metrics.loc[control_name, 'mean']
+        self.n_control = metrics.loc[control_name, 'count']
+
+        self.p_treatment = metrics.loc[treatment_name, 'mean']
+        self.n_treatment = metrics.loc[treatment_name, 'count']
+
+        if evaluate:
+            self.simulate_significance()
+            self.simulate_power()
+
+        print(self)
 
     def __repr__(self):
         """
