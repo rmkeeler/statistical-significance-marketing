@@ -76,7 +76,10 @@ class BinomialExperiment():
 
     def get_p_sample(self):
         """
-        Take sample sizes and probabilities from each sample and return the probability of the combination of samples
+        Combine the two samples (treatment and control) and calculate the probability of positive outcome for the combined group.
+
+        Useful to draw up distributions that assume the difference between sample probs is 0.
+        Rather than assume control prob is true prob, assume the combined prob is the true prob.
         """
         control = self.p_control * self.n_control
         treatment = self.p_treatment * self.n_treatment
