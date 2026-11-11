@@ -1,3 +1,4 @@
+# %%
 import argparse
 import os
 import sys
@@ -7,8 +8,11 @@ import webbrowser
 from modules.binomial import BinomialExperiment
 from modules.functions import create_dashboard
 from modules.functions import save_images
+# %%
 
-os.chdir(os.path.dirname(sys.argv[0]))
+# %%
+#os.chdir(os.path.dirname(sys.argv[0])) # changes working directory to project python location
+# %%
 
 # Parse command line arguments
 # Instantiate parser
