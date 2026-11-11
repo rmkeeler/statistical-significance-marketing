@@ -1,0 +1,10 @@
+[project]
+name = "statistical-significance-marketing"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=3.1.1",
+    "pillow>=13.0.0",
+    "plotly>=7.1.0",
+    "scipy>=1.18.1",
+]

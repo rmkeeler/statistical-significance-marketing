@@ -94,9 +94,9 @@ class BinomialExperiment():
     def estimate_sample(self, power = None, alpha = None):
         """
         Take desired effect size, alpha and desired power level from self. Return a minimum sample size (one group)
-        that would be necessary to acheive the desired experiment results.
+        that would be necessary to achieve the desired experiment results.
 
-        Allows the user to specify power here, if they didn't specify them when they instantiated the class.
+        Allows the user to specify power here, if they didn't specify it when they instantiated the class.
         Otherwise, it takes the values provided to the class on instantiation.
 
         NOTE: If a power value is supplied, this method will NOT change self.power. The ability
@@ -118,7 +118,7 @@ class BinomialExperiment():
         else:
             raise ValueError('Alpha provided is impossible (1, 0 or negative). Please provide a positive power between 0 and 1.')
 
-        z_null = stats.norm.ppf(1 - self.alpha)
+        z_null = stats.norm.ppf(1 - alpha)
         z_alt = stats.norm.ppf(1 - power)
 
         stdev_null = np.sqrt(self.var_control + self.var_control)
