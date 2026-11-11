@@ -3,6 +3,7 @@ name = "statistical-significance-marketing"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    "kaleido>=1.5.0",
     "pandas>=3.1.1",
     "pillow>=13.0.0",
     "plotly>=7.1.0",
